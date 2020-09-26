@@ -1,25 +1,23 @@
 import { promises as fs, existsSync as dirExists } from 'fs'
 import { promisify } from 'util'
 import ora from 'ora'
-import { red, blueBright, underline, white, green, yellow } from 'chalk'
+import { red, blueBright, white, yellow, greenBright } from 'chalk'
 import { exec, ExecException } from 'child_process'
-import cliSelect from 'cli-select'
 import figures from 'figures'
 import { generateDirectoryName } from './utils/generate-directory-name'
 import {
-  eslintBrowserContent,
-  eslintBrowserJestContent,
-  eslintNodeContent,
   eslintNodeJestContent,
   gitIgnoreContent,
   huskyrcContent,
+  indexContent,
   jestConfig,
   lintstagedrcContent,
   prettierrcContent,
-  tsconfigBrowser,
+  readmeContent,
+  sumTestContent,
   tsconfigNode,
 } from './utils/generated-files-content'
-import { browserDevDeps, jestDeps, nodeDevDeps } from './utils/deps'
+import { jestDeps, nodeDevDeps } from './utils/deps'
 
 async function run() {
   const log = console.log
@@ -106,47 +104,11 @@ async function run() {
   }
 
   /*
-    Ask the user if the environment for the project is going to be Node or the browser
+    Install dependencies
   */
-  log(
-    `${blueBright(figures.pointer)} ${white(
-      `What will the environment of this project be?`,
-    )}`,
-  )
-
-  const { value: environment } = await cliSelect({
-    values: ['Node', 'Browser (React)'],
-    selected: green(figures.radioOn),
-    unselected: white(figures.radioOff),
-    indentation: 1,
-    valueRenderer: (value, selected) => {
-      if (selected) {
-        return underline(green(value))
-      }
-
-      return value
-    },
-  })
-
-  log(
-    blueBright(
-      `${figures.info} Using ${environment} as the environment for this project`,
-    ),
-  )
-
-  /*
-    Install dependencies based on the environment
-  */
-  const deps: string[] = []
-  if (environment === 'Node') {
-    deps.push(...nodeDevDeps)
-  } else if (environment === 'Browser (React)') {
-    deps.push(...browserDevDeps)
-  }
-
   const depsInstallationSpinner = ora(
     white(
-      `📦 Installing ${deps.join(', ')}. ${yellow(
+      `📦  Installing ${nodeDevDeps.join(', ')}. ${yellow(
         'If any of these dependencies is installed, it will be overwritten with its latest version.',
       )}`,
     ),
@@ -155,7 +117,7 @@ async function run() {
   depsInstallationSpinner.start()
 
   try {
-    await execCommand(`npm install -D ${deps.join(' ')}`, {
+    await execCommand(`npm install -D ${nodeDevDeps.join(' ')}`, {
       cwd: directoryPath,
     })
     depsInstallationSpinner.succeed()
@@ -173,63 +135,40 @@ async function run() {
   }
 
   /*
-    Ask the user if they want to use Jest
+    Set up Jest
   */
-  log(`${blueBright(figures.pointer)} ${white(`Do you wish to set up Jest?`)}`)
+  const jestSetupSpinner = ora(white(`🤖  Setting up Jest`))
+  jestSetupSpinner.start()
 
-  const { value: jestOption } = await cliSelect({
-    values: ['Yes', 'No'],
-    selected: green(figures.radioOn),
-    unselected: white(figures.radioOff),
-    indentation: 1,
-    valueRenderer: (value, selected) => {
-      if (selected) {
-        return underline(green(value))
-      }
-
-      return value
-    },
-  })
-
-  const useJest = jestOption === 'Yes'
-
-  if (useJest) {
-    /*
-      Set up Jest
-    */
-    const jestSetupSpinner = ora(white(`🤖 Setting up Jest`))
-    jestSetupSpinner.start()
-
-    try {
-      await execCommand(`npm install -D ${jestDeps.join(' ')}`, {
-        cwd: directoryPath,
-      })
-      jestSetupSpinner.succeed()
-    } catch (error) {
-      jestSetupSpinner.fail()
-      log(
-        red(
-          `Something went wrong installing dependencies needed by Jest:
+  try {
+    await execCommand(`npm install -D ${jestDeps.join(' ')}`, {
+      cwd: directoryPath,
+    })
+    jestSetupSpinner.succeed()
+  } catch (error) {
+    jestSetupSpinner.fail()
+    log(
+      red(
+        `Something went wrong installing dependencies needed by Jest:
            Error message: ${(error as ExecException).message}
            Error code: ${(error as ExecException).code}
            Error name ${(error as ExecException).name}`,
-        ),
-      )
-      process.exit(1)
-    }
+      ),
+    )
+    process.exit(1)
+  }
 
-    /*
+  /*
       Create config file for jest
     */
-    try {
-      await fs.writeFile(`${directoryName}/jest.config.js`, jestConfig)
-    } catch (error) {
-      log(
-        red(
-          `${figures.cross} Something went wrong creating the file jest.config.js`,
-        ),
-      )
-    }
+  try {
+    await fs.writeFile(`${directoryPath}/jest.config.js`, jestConfig)
+  } catch (error) {
+    log(
+      red(
+        `${figures.cross} Something went wrong creating the file jest.config.js`,
+      ),
+    )
   }
 
   /*
@@ -237,7 +176,7 @@ async function run() {
   */
   const filesSpinner = ora(
     white(
-      `📃 Creating config files for typescript, eslint, git, prettier, husky, and lint-staged.`,
+      `📃  Creating config files for typescript, eslint, git, prettier, husky, and lint-staged.`,
     ),
   )
   filesSpinner.start()
@@ -246,10 +185,7 @@ async function run() {
     tsconfig.json
   */
   try {
-    await fs.writeFile(
-      `${directoryName}/tsconfig.json`,
-      environment === 'Browser (React)' ? tsconfigBrowser : tsconfigNode,
-    )
+    await fs.writeFile(`${directoryPath}/tsconfig.json`, tsconfigNode)
   } catch (error) {
     log(
       red(
@@ -260,16 +196,7 @@ async function run() {
 
   // .eslintrc.js
   try {
-    await fs.writeFile(
-      `${directoryName}/.eslintrc.js`,
-      environment === 'Browser (React)'
-        ? useJest
-          ? eslintBrowserJestContent
-          : eslintBrowserContent
-        : useJest
-        ? eslintNodeJestContent
-        : eslintNodeContent,
-    )
+    await fs.writeFile(`${directoryPath}/.eslintrc.js`, eslintNodeJestContent)
   } catch (error) {
     log(
       red(
@@ -280,7 +207,7 @@ async function run() {
 
   // .gitignore
   try {
-    await fs.writeFile(`${directoryName}/.gitignore`, gitIgnoreContent)
+    await fs.writeFile(`${directoryPath}/.gitignore`, gitIgnoreContent)
   } catch (error) {
     log(
       red(`${figures.cross} Something went wrong creating the file .gitignore`),
@@ -289,7 +216,7 @@ async function run() {
 
   // .prettierrc
   try {
-    await fs.writeFile(`${directoryName}/.prettierrc`, prettierrcContent)
+    await fs.writeFile(`${directoryPath}/.prettierrc`, prettierrcContent)
   } catch (error) {
     log(
       red(
@@ -300,7 +227,7 @@ async function run() {
 
   // .huskyrc.js
   try {
-    await fs.writeFile(`${directoryName}/.huskyrc.js`, huskyrcContent)
+    await fs.writeFile(`${directoryPath}/.huskyrc.js`, huskyrcContent)
   } catch (error) {
     log(
       red(
@@ -311,7 +238,7 @@ async function run() {
 
   // .lintstagedrc.js
   try {
-    await fs.writeFile(`${directoryName}/.lintstagedrc.js`, lintstagedrcContent)
+    await fs.writeFile(`${directoryPath}/.lintstagedrc.js`, lintstagedrcContent)
   } catch (error) {
     log(
       red(
@@ -325,10 +252,95 @@ async function run() {
 
   /*
     TODO: 
-    Create scripts in package.json
-    Create file in src/index.ts with some dummy code, create dummy test in /src/__tests__/dummy.test.ts.
     Create README.md
   */
+
+  /*
+    Create package.json scripts
+  */
+  const scriptsSpinner = ora(white(`🤖  Updating package.json scripts`))
+  scriptsSpinner.start()
+
+  try {
+    const packageJson = JSON.parse(
+      await fs.readFile(`${directoryPath}/package.json`, 'utf-8'),
+    ) as { scripts: { [script: string]: string } }
+
+    const { scripts } = packageJson
+
+    scripts.test = 'jest'
+    scripts['test:watch'] = 'jest --watch'
+    scripts.lint = 'eslint --ignore-path .gitignore --ext .js,.ts'
+    scripts['check-types'] = 'tsc --noEmit'
+    scripts.format = 'pretty-quick'
+    scripts.start = 'tsc && node dist/index.js'
+    scripts.dev =
+      'ts-node-dev -r tsconfig-paths/register --respawn src/index.ts'
+    scripts.prettier = `prettier --write '**/*.{ts,js,json,md,graphql}'`
+
+    const updatedPackageJson = { ...packageJson, scripts: { ...scripts } }
+
+    await fs.writeFile(
+      `${directoryPath}/package.json`,
+      JSON.stringify(updatedPackageJson),
+    )
+    scriptsSpinner.succeed()
+  } catch (error) {
+    scriptsSpinner.fail()
+    log(
+      red(
+        `${figures.cross} Something went wrong updating the package.json with the needed scripts.`,
+      ),
+    )
+    process.exit(1)
+  }
+
+  /*
+    Create example source files
+  */
+  const exampleSourceFilesSpinner = ora(
+    white(`📃  Creating example source files and README`),
+  )
+  exampleSourceFilesSpinner.start()
+
+  try {
+    await fs.mkdir(`${directoryPath}/src`)
+    await fs.mkdir(`${directoryPath}/src/__tests__`)
+
+    await fs.writeFile(`${directoryPath}/src/index.ts`, indexContent)
+
+    await fs.writeFile(
+      `${directoryPath}/src/__tests__/sum.test.ts`,
+      sumTestContent,
+    )
+
+    await fs.writeFile(
+      `${directoryPath}/README.md`,
+      readmeContent(directoryName),
+    )
+
+    exampleSourceFilesSpinner.succeed()
+  } catch (error) {
+    exampleSourceFilesSpinner.fail()
+    log(
+      red(
+        `${figures.cross} Something went wrong creating example source files in src/`,
+      ),
+    )
+  }
+
+  /*
+    Format generated files
+  */
+  try {
+    await execCommand('npm run prettier', { cwd: directoryPath })
+  } catch (error) {
+    log(
+      `${figures.info} Generated files couldn't be formatted with the generated prettier config, you may need to format the generated files yourself.`,
+    )
+  }
+
+  log(greenBright(`\n✨  Happy hacking!\n`))
 }
 
 process.on('unhandledRejection', () => {

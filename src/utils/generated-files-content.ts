@@ -101,106 +101,6 @@ export const lintstagedrcContent = `module.exports = {
 }
 `
 
-export const eslintBrowserContent = `module.exports = {
-  parser: '@typescript-eslint/parser', // Specifies the ESLint parser
-  parserOptions: {
-    ecmaVersion: 2020, // Allows for the parsing of modern ECMAScript features
-    sourceType: 'module', // Allows for the use of imports
-    ecmaFeatures: {
-      jsx: true, // Allows for the parsing of JSX
-    },
-  },
-  settings: {
-    react: {
-      version: 'detect', // Tells eslint-plugin-react to automatically detect the version of React to use
-    },
-    'import/resolver': {
-      typescript: {},
-    },
-  },
-  extends: [
-    'plugin:react/recommended', // Uses the recommended rules from @eslint-plugin-react
-    'plugin:@typescript-eslint/recommended', // Uses the recommended rules from the @typescript-eslint/eslint-plugin
-    'prettier/@typescript-eslint', // Uses eslint-config-prettier to disable ESLint rules from @typescript-eslint/eslint-plugin that would conflict with prettier
-    'plugin:prettier/recommended', // Enables eslint-plugin-prettier and eslint-config-prettier. This will display prettier errors as ESLint errors. Make sure this is always the last configuration in the extends array.
-    'plugin:jsx-a11y/recommended',
-    'plugin:import/errors',
-    'plugin:import/warnings',
-    'plugin:import/typescript',
-  ],
-  rules: {
-    // Place to specify ESLint rules. Can be used to overwrite rules specified from the extended configs
-    // e.g. "@typescript-eslint/explicit-function-return-type": "off",
-    'react/prop-types': 'off',
-    'import/order': [
-      'error',
-      {
-        groups: [
-          'object',
-          'builtin',
-          'external',
-          'internal',
-          'parent',
-          'sibling',
-          'index',
-        ],
-      },
-    ],
-    'import/no-named-as-default-member': 'off',
-    'import/no-named-as-default': 'off',
-  },
-}`
-
-export const eslintBrowserJestContent = `module.exports = {
-  parser: '@typescript-eslint/parser', // Specifies the ESLint parser
-  parserOptions: {
-    ecmaVersion: 2020, // Allows for the parsing of modern ECMAScript features
-    sourceType: 'module', // Allows for the use of imports
-    ecmaFeatures: {
-      jsx: true, // Allows for the parsing of JSX
-    },
-  },
-  settings: {
-    react: {
-      version: 'detect', // Tells eslint-plugin-react to automatically detect the version of React to use
-    },
-    'import/resolver': {
-      typescript: {},
-    },
-  },
-  extends: [
-    'plugin:react/recommended', // Uses the recommended rules from @eslint-plugin-react
-    'plugin:@typescript-eslint/recommended', // Uses the recommended rules from the @typescript-eslint/eslint-plugin
-    'plugin:jsx-a11y/recommended',
-    'plugin:import/errors',
-    'plugin:import/warnings',
-    'plugin:import/typescript',
-    'plugin:jest/recommended',
-  ],
-  rules: {
-    // Place to specify ESLint rules. Can be used to overwrite rules specified from the extended configs
-    // e.g. "@typescript-eslint/explicit-function-return-type": "off",
-    'react/prop-types': 'off',
-    'import/order': [
-      'error',
-      {
-        groups: [
-          'object',
-          'builtin',
-          'external',
-          'internal',
-          'parent',
-          'sibling',
-          'index',
-        ],
-      },
-    ],
-    'import/no-named-as-default-member': 'off',
-    'import/no-named-as-default': 'off',
-  },
-}
-`
-
 export const eslintNodeJestContent = `module.exports = {
   env: {
     es2021: true,
@@ -294,44 +194,24 @@ export const eslintNodeContent = `module.exports = {
   },
 }`
 
-export const jestConfig = `module.exports = {
-  roots: ['<rootDir>/src'],
-  testMatch: [
-    '**/__tests__/**/*.+(ts|tsx|js)',
-    '**/?(*.)+(spec|test).+(ts|tsx|js)',
-  ],
-  transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
-  },
-  setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
-}`
+export const jestConfig = `/* eslint-disable @typescript-eslint/no-var-requires */
+const tsconfig = require('./tsconfig.json')
+// eslint-disable-next-line import/order
+const moduleNameMapper = require('tsconfig-paths-jest')(tsconfig)
 
-export const tsconfigBrowser = `{
-  "compilerOptions": {
-    "module": "CommonJS",
-    "target": "es2019",
-    "jsx": "react",
-    "outDir": "./dist",
-    "lib": ["dom", "esnext"],
-    "strict": true,
-    "moduleResolution": "node",
-    "removeComments": true,
-    "noEmit": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "noImplicitThis": true,
-    "esModuleInterop": true,
-    "noUnusedLocals": false,
-    "noFallthroughCasesInSwitch": true,
-    "noUnusedParameters": true,
-    "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true,
-    "noImplicitReturns": true,
-  },
-  "exclude": ["node_modules"],
-  "include": ["src/**/*"]
-}`
+/* 
+  The moduleNameMapper exported by "tsconfig-paths-jest" doesn't match
+  only the paths which are exact, for example, if in our tsconfig.json paths we have:
+  "utils/*": [...]
+  then the moduleNameMapper from jest would apply to everything with utils/*, including
+  relative paths such as "../../utils/something" and this can cause issues, so in order
+  to fix this, we transform each mapper to start with ^ so it doesn't match relative
+  paths and only exact ones.
+*/
+const exactModuleNameMapper = {}
+Object.keys(moduleNameMapper).forEach(glob => {
+  exactModuleNameMapper[\`^\${glob}\`] = moduleNameMapper[glob]
+})`
 
 export const tsconfigNode = `{
   "compilerOptions": {
@@ -371,3 +251,26 @@ export const tsconfigNode = `{
   "exclude": ["node_modules"],
   "include": ["./src/**/*.ts"]
 }`
+
+export const indexContent = `export const sum = (a: number, b: number): number => a + b`
+
+export const sumTestContent = `import { sum } from '../index'
+
+test('adds 1 + 2 to equal 3', () => {
+  expect(sum(1, 2)).toBe(3)
+})`
+
+export const readmeContent = (projectName: string) => `# ${projectName}
+
+🎉 Project bootstrapped by [gmc-cli](https://github.com/gmencz/gmc-cli)
+
+## Scripts
+
+- \`dev\`: Starts the development version of the project.
+- \`start\`: Starts the production version of the project.
+- \`test\`: Runs Jest.
+- \`test:watch\`: Runs Jest on watch mode.
+- \`lint\`: Runs eslint.
+- \`check-types\`: Runs the typescript compiler without emiting files (used by pre-commit git hook).
+- \`format\`: Runs [pretty-quick](https://github.com/azz/pretty-quick)
+- \`prettier\`: Runs prettier on all the project's files.`
