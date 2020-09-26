@@ -1,2 +1,3 @@
 # gmc-cli
-📺 CLI for improving the workflow and development speed of my personal projects
+
+📺 CLI for creating a new Node project with all the modern tooling.
