@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { promises as fs, existsSync as dirExists } from 'fs'
 import { promisify } from 'util'
 import ora from 'ora'
