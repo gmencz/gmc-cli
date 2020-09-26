@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "1.0.0",
   "license": "MIT",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -60,7 +60,14 @@
     "type": "git",
     "url": "git+https://github.com/gmencz/gmc-cli.git"
   },
-  "keywords": [],
+  "keywords": [
+    "Node",
+    "Prettier",
+    "Typescript",
+    "Husky",
+    "Eslint",
+    "Jest"
+  ],
   "bugs": {
     "url": "https://github.com/gmencz/gmc-cli/issues"
   },
