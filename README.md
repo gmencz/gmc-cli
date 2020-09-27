@@ -1,6 +1,11 @@
 # gmc-cli
 
-📺 CLI for creating a new Node project with all the modern tooling.
+📺 CLI for creating a new Node project with the following tooling set up for you:
+- Typescript
+- Eslint
+- Jest
+- Prettier
+- Git hooks, only the `pre-commit` hook is set up with `lint-staged` and `husky`.
 
 ## Usage
 
