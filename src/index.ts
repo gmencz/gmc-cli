@@ -307,7 +307,7 @@ async function run() {
   try {
     await fs.mkdir(`${directoryPath}/src`)
     await fs.mkdir(`${directoryPath}/src/__tests__`)
-
+    await fs.writeFile(`${directoryPath}/src/setupTests.ts`, '')
     await fs.writeFile(`${directoryPath}/src/index.ts`, indexContent)
 
     await fs.writeFile(

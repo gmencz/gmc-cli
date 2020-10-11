@@ -165,7 +165,21 @@ const moduleNameMapper = require('tsconfig-paths-jest')(tsconfig)
 const exactModuleNameMapper = {}
 Object.keys(moduleNameMapper).forEach(glob => {
   exactModuleNameMapper[\`^\${glob}\`] = moduleNameMapper[glob]
-})`
+})
+
+module.exports = {
+  roots: ['<rootDir>/src'],
+  testMatch: [
+    '**/__tests__/**/*.+(ts|tsx|js)',
+    '**/?(*.)+(spec|test).+(ts|tsx|js)',
+  ],
+  transform: {
+    '^.+\\.(ts|tsx)$': 'ts-jest',
+  },
+  // Load tsconfig paths and transform them into moduleNameMapper
+  moduleNameMapper: exactModuleNameMapper,
+  setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
+};`
 
 export const tsconfigNode = `{
   "compilerOptions": {
