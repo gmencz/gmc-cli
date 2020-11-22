@@ -118,6 +118,8 @@ export const eslintNodeJestContent = `module.exports = {
     'plugin:import/warnings',
     'plugin:import/typescript',
     'plugin:jest/recommended',
+    'prettier',
+    'prettier/@typescript-eslint'
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {

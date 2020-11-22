@@ -19,4 +19,5 @@ export const nodeDevDeps = [
   '@types/node',
   'ts-node-dev',
   'tsconfig-paths',
+  'eslint-config-prettier',
 ]
